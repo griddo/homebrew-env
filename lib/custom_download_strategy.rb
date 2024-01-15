@@ -1,6 +1,6 @@
 # Save this file as `lib/private_strategy.rb`
 # Add `require_relative "lib/private_strategy"` to your formula.
-# 
+#
 # This is based on the following, with minor fixes.
 # https://github.com/Homebrew/brew/blob/193af1442f6b9a19fa71325160d0ee2889a1b6c9/Library/Homebrew/compat/download_strategy.rb#L48-L157
 
@@ -62,7 +62,7 @@ class GitHubPrivateRepositoryDownloadStrategy < CurlDownloadStrategy
 
   private
 
-  def _fetch(url:, resolved_url:, timeout:)
+  def _fetch(url:, resolved_url:)
     curl_download download_url, to: temporary_path
   end
 
@@ -78,9 +78,9 @@ class GitHubPrivateRepositoryDownloadStrategy < CurlDownloadStrategy
   def validate_github_repository_access!
     # Test access to the repository
     GitHub.repository(@owner, @repo)
-  rescue GitHub::API::HTTPNotFoundError
-    # We switched to GitHub::API::HTTPNotFoundError, 
-    # because we can now handle bad credentials messages
+  rescue GitHub::HTTPNotFoundError
+    # We only handle HTTPNotFoundError here,
+    # becase AuthenticationFailedError is handled within util/github.
     message = <<~EOS
       HOMEBREW_GITHUB_API_TOKEN can not access the repository: #{@owner}/#{@repo}
       This token may not have permission to access the repository or the url of formula may be incorrect.
@@ -108,20 +108,13 @@ class GitHubPrivateRepositoryReleaseDownloadStrategy < GitHubPrivateRepositoryDo
     _, @owner, @repo, @tag, @filename = *@url.match(url_pattern)
   end
 
-  def resolve_url_basename_time_file_size(url, timeout: nil)
-      [download_url, "", Time.now, 0, false]
-    end
-
   def download_url
     "https://#{@github_token}@api.github.com/repos/#{@owner}/#{@repo}/releases/assets/#{asset_id}"
   end
 
   private
 
-  def _fetch(url:, resolved_url:, timeout:)
-
-    resolve_url_basename_time_file_size(@url)
-
+  def _fetch(url:, resolved_url:)
     # HTTP request header `Accept: application/octet-stream` is required.
     # Without this, the GitHub API will respond with metadata, not binary.
     curl_download download_url, "--header", "Accept: application/octet-stream", to: temporary_path
@@ -140,8 +133,7 @@ class GitHubPrivateRepositoryReleaseDownloadStrategy < GitHubPrivateRepositoryDo
   end
 
   def fetch_release_metadata
-    #release_url = "https://api.github.com/repos/#{@owner}/#{@repo}/releases/tags/#{@tag}"
-    #GitHub::API.open_rest(release_url)
-    GitHub.get_release(@owner, @repo, @tag)
+    release_url = "https://api.github.com/repos/#{@owner}/#{@repo}/releases/tags/#{@tag}"
+    GitHub.open_api(release_url)
   end
 end
