@@ -108,7 +108,7 @@ class GitHubPrivateRepositoryReleaseDownloadStrategy < GitHubPrivateRepositoryDo
     _, @owner, @repo, @tag, @filename = *@url.match(url_pattern)
   end
 
-  def resolve_url_basename_time_file_size(url, timeout: nil)
+  def resolve_url_basename_time_file_size(url: , timeout: nil)
       [download_url, "", Time.now, 0, false]
     end
 
