@@ -108,6 +108,10 @@ class GitHubPrivateRepositoryReleaseDownloadStrategy < GitHubPrivateRepositoryDo
     _, @owner, @repo, @tag, @filename = *@url.match(url_pattern)
   end
 
+    def resolve_url_basename_time_file_size(url: , timeout: nil)
+      [download_url, "", Time.now, 0, false]
+    end
+
   def download_url
     "https://#{@github_token}@api.github.com/repos/#{@owner}/#{@repo}/releases/assets/#{asset_id}"
   end
@@ -115,9 +119,12 @@ class GitHubPrivateRepositoryReleaseDownloadStrategy < GitHubPrivateRepositoryDo
   private
 
   def _fetch(url:, resolved_url:, timeout:)
+    resolve_url_basename_time_file_size(@url)
+
     # HTTP request header `Accept: application/octet-stream` is required.
     # Without this, the GitHub API will respond with metadata, not binary.
     curl_download download_url, "--header", "Accept: application/octet-stream", to: temporary_path
+
   end
 
   def asset_id
